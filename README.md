@@ -1,4 +1,4 @@
-Set-Content -Path README.md -Value @"
+[System.IO.File]::WriteAllText("$PWD\README.md", @"
 # 🚀 API Gateway Service
 
 High-performance, reactive, and resilient API Gateway service for E-Commerce Microservices Architecture built with **Spring Cloud Gateway**, **Java 21**, and **Redis Rate Limiting**.
@@ -52,7 +52,7 @@ Execute the following PowerShell script to verify token bucket behavior:
     try { 
         (Invoke-WebRequest -Uri "http://localhost:8080/api/v1/products/1" -UseBasicParsing).StatusCode 
     } catch { 
-        \$_.Exception.Response.StatusCode.Value__ 
+        \`$_.Exception.Response.StatusCode.Value__ 
     } 
 }
 \`\`\`
@@ -109,7 +109,7 @@ Redis Rate Limiter sistemini doğrulamak için aşağıdaki PowerShell komutunu 
     try { 
         (Invoke-WebRequest -Uri "http://localhost:8080/api/v1/products/1" -UseBasicParsing).StatusCode 
     } catch { 
-        \$_.Exception.Response.StatusCode.Value__ 
+        \`$_.Exception.Response.StatusCode.Value__ 
     } 
 }
 \`\`\`
@@ -130,4 +130,4 @@ Redis Rate Limiter sistemini doğrulamak için aşağıdaki PowerShell komutunu 
    \`\`\`bash
    ./mvnw spring-boot:run
    \`\`\`
-"@ -Encoding UTF8 ; git add README.md ; git commit -m "docs: remove unconfigured maven build badge and finalize README" ; git push origin main
+"@, [System.Text.Encoding]::UTF8); git add README.md; git commit -m "docs: finalize clean bilingual README with mermaid diagrams"; git push origin main
