@@ -25,7 +25,7 @@ Central Entry Point and Reverse Proxy for the E-Commerce Microservices ecosystem
 graph TD
     Client[Client / PowerShell / Postman] -->|HTTP Request| Gateway[Spring Cloud Gateway :8080]
     
-    subgraph Gateway Engine
+    subgraph GatewayEngine ["Gateway Engine"]
         Gateway -->|1. Resolve IP| KeyRes["KeyResolver (RateLimiterConfig)"]
         KeyRes -->|2. Check Tokens| RedisLimiter["RedisRateLimiter (10 rps / 20 burst)"]
         RedisLimiter <-->|Evaluate Limits| Redis[(Redis Docker Container :6379)]
@@ -36,6 +36,8 @@ graph TD
     
     Routing -->|/api/v1/products/**| CoreAPI["Core API Service :8081"]
     Routing -->|/api/v1/notifications/**| NotifAPI["Notification Service :8082"]
+
+    style GatewayEngine fill:#161b22,stroke:#30363d,stroke-width:1px,color:#fff
 ```
 
 ### ✨ Key Architectural Features
@@ -82,7 +84,7 @@ E-Ticaret Mikroservis mimarisinin merkezi giriş kapısı ve ters proxy (reverse
 graph TD
     Client[İstemci / PowerShell / Postman] -->|HTTP İsteği| Gateway[Spring Cloud Gateway :8080]
     
-    subgraph Gateway Motoru
+    subgraph GatewayEngine ["Gateway Motoru"]
         Gateway -->|1. IP Çözümleme| KeyRes["KeyResolver (RateLimiterConfig)"]
         KeyRes -->|2. Kota Kontrolü| RedisLimiter["RedisRateLimiter (10 rps / 20 burst)"]
         RedisLimiter <-->|Limit Sorgusu| Redis[(Redis Docker Konteyner :6379)]
@@ -93,6 +95,8 @@ graph TD
     
     Routing -->|/api/v1/products/**| CoreAPI["Core API Servisi :8081"]
     Routing -->|/api/v1/notifications/**| NotifAPI["Bildirim Servisi :8082"]
+
+    style GatewayEngine fill:#161b22,stroke:#30363d,stroke-width:1px,color:#fff
 ```
 
 ### ✨ Öne Çıkan Mimari Özellikler
