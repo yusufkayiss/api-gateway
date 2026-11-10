@@ -1,5 +1,7 @@
 # 🚀 API Gateway Service
 
+[![Java CI with Maven](https://github.com/yusufkayiss/api-gateway/actions/workflows/maven.yml/badge.svg)](https://github.com/yusufkayiss/api-gateway/actions)
+
 High-performance, reactive, and resilient API Gateway service for E-Commerce Microservices Architecture built with **Spring Cloud Gateway**, **Java 21**, and **Redis Rate Limiting**.
 
 ---
