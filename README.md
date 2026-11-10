@@ -41,7 +41,7 @@ graph TD
 ### ✨ Key Architectural Features
 - **Programmatic Java Configuration**: Replaced XML/YAML route declarations with type-safe `RouteLocatorBuilder` to eliminate parser errors and enhance flexibility.
 - **Distributed Redis Rate Limiting**: Token Bucket rate limiter preventing DDoS and traffic spikes by limiting requests per IP address.
-- **Null-Safe Key Resolver**: Custom IP extraction mechanism fallback logic to ensure continuous gateway operation without NullPointerExceptions (`NPE`).
+- **Null-Safe Key Resolver**: Custom IP extraction mechanism fallback logic to ensure continuous gateway operation without `NullPointerExceptions` (`NPE`).
 - **Reactive Stack**: Fully non-blocking WebFlux architecture capable of scaling to high concurrent connection counts.
 
 ### 🧪 Testing Rate Limits
@@ -98,7 +98,7 @@ graph TD
 ### ✨ Öne Çıkan Mimari Özellikler
 - **Programmatik Java Rotalama**: Tip güvenliği sağlamak ve YAML parser çakışmalarını engellemek amacıyla Java tabanlı `RouteLocatorBuilder` kullanımı.
 - **Dağıtık Redis Rate Limiting**: İstemci IP adresi başına istek sınırlandırması yaparak sistemi aşırı yüklenmelerden ve DDoS durumlarından koruyan Token Bucket algoritması.
-- **Null-Safe IP Çözümleyici**: NullPointerExceptions (`NPE`) riskini ortadan kaldıran esnek IP alma ve fallback mekanizması.
+- **Null-Safe IP Çözümleyici**: `NullPointerExceptions` (`NPE`) riskini ortadan kaldıran esnek IP alma ve fallback mekanizması.
 - **Reaktif Yığın (Reactive Stack)**: Yüksek eşzamanlı istek miktarını (concurrency) sorunsuz karşılayan non-blocking WebFlux yapısı.
 
 ### 🧪 Rate Limit Test Adımları
