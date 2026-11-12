@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+data:
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  CORE_API_URI: "http://core-api-service:8081"
+  NOTIFICATION_SERVICE_URI: "http://notification-service:8082"
