@@ -12,17 +12,22 @@ public class RateLimiterConfig {
 
     @Bean
     public RedisRateLimiter redisRateLimiter() {
-        // Parametrelerin hepsi int olmalı: (replenishRate, burstCapacity, requestedTokens)
         return new RedisRateLimiter(10, 20, 1);
     }
 
     @Bean
     @Primary
     public KeyResolver userKeyResolver() {
-        return exchange -> Mono.just(
-                exchange.getRequest().getRemoteAddress() != null
-                        ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                        : "anonymous"
-        );
+        return exchange -> {
+            String userId = exchange.getRequest().getHeaders().getFirst("X-User-Id");
+            if (userId != null && !userId.isBlank()) {
+                return Mono.just("user:" + userId);
+            }
+
+            String ip = exchange.getRequest().getRemoteAddress() != null
+                    ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+                    : "anonymous";
+            return Mono.just("ip:" + ip);
+        };
     }
 }

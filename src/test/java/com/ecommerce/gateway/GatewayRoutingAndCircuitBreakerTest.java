@@ -1,9 +1,13 @@
 package com.ecommerce.gateway;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -12,6 +16,10 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
@@ -39,6 +47,20 @@ class GatewayRoutingAndCircuitBreakerTest {
     @Autowired
     private WebTestClient webTestClient;
 
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    private String generateTestToken(String userId) {
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        return Jwts.builder()
+                .subject("testuser@ecommerce.com")
+                .claim("userId", userId)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 60_000))
+                .signWith(key)
+                .compact();
+    }
+
     @Test
     void shouldRouteToCoreApiAndInjectGatewayHeader() {
         stubFor(get(urlEqualTo("/api/v1/products"))
@@ -57,7 +79,41 @@ class GatewayRoutingAndCircuitBreakerTest {
     }
 
     @Test
+    void shouldRejectUnauthenticatedRequestToProtectedEndpoint() {
+        webTestClient.get()
+                .uri("/api/v1/orders")
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(401)
+                .jsonPath("$.error").isEqualTo("Unauthorized");
+    }
+
+    @Test
+    void shouldForwardAuthenticatedRequestWithUserIdHeader() {
+        String token = generateTestToken("42");
+
+        stubFor(get(urlEqualTo("/api/v1/orders"))
+                .withHeader("X-Gateway-Source", equalTo("api-gateway"))
+                .withHeader("X-User-Id", equalTo("42"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"orders\":[\"ORD-1001\"]}")));
+
+        webTestClient.get()
+                .uri("/api/v1/orders")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.orders[0]").isEqualTo("ORD-1001");
+    }
+
+    @Test
     void shouldTriggerCircuitBreakerFallbackWhenServiceTimesOut() {
+        String token = generateTestToken("42");
+
         stubFor(get(urlEqualTo("/api/v1/orders"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -65,6 +121,7 @@ class GatewayRoutingAndCircuitBreakerTest {
 
         webTestClient.get()
                 .uri("/api/v1/orders")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
                 .expectBody()

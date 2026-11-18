@@ -4,6 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -12,7 +15,20 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {
+                "services.core-api.uri=http://localhost:${wiremock.server.port}",
+                "services.notification.uri=http://localhost:${wiremock.server.port}"
+        }
+)
+@AutoConfigureWireMock(port = 0)
 @Testcontainers
 class RateLimiterIntegrationTest {
 
@@ -38,5 +54,27 @@ class RateLimiterIntegrationTest {
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.status").isEqualTo("UP");
+    }
+
+    @Test
+    @DisplayName("Burst kapasitesi (20) aşıldığında 429 Too Many Requests dönmeli")
+    void shouldReturn429WhenRateLimitExceeded() {
+        stubFor(get(urlEqualTo("/api/v1/products"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withBody("{\"products\":[]}")));
+
+        List<HttpStatusCode> statuses = new ArrayList<>();
+
+        for (int i = 0; i < 45; i++) {
+            webTestClient.get()
+                    .uri("/api/v1/products")
+                    .exchange()
+                    .expectBody()
+                    .consumeWith(result -> statuses.add(result.getStatus()));
+        }
+
+        assertThat(statuses).contains(HttpStatus.OK);
+        assertThat(statuses).contains(HttpStatus.TOO_MANY_REQUESTS);
     }
 }
