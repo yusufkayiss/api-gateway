@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: api-gateway
+  reactor:
+    context-propagation: auto
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -45,7 +47,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,circuitbreakers
+        include: health,info,metrics,prometheus,circuitbreakers
   endpoint:
     health:
       show-details: always
@@ -54,8 +56,16 @@ management:
   health:
     circuitbreakers:
       enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
 
 logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     org.springframework.cloud.gateway: INFO
     io.github.resilience4j: INFO
