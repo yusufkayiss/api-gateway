@@ -74,7 +74,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         if (path.startsWith("/api/v1/auth") || path.startsWith("/actuator") || path.startsWith("/fallback")) {
             return true;
         }
-        return path.startsWith("/api/v1/products") && HttpMethod.GET.equals(method);
+        if (HttpMethod.GET.equals(method)) {
+            return path.startsWith("/api/v1/products") || path.startsWith("/api/v1/categories");
+        }
+        return false;
     }
 
     private Mono<Void> onUnauthorized(ServerWebExchange exchange, String message) {

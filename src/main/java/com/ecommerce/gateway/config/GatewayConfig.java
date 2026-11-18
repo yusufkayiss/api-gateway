@@ -23,7 +23,13 @@ public class GatewayConfig {
                                            KeyResolver userKeyResolver) {
         return builder.routes()
                 .route("ecommerce-core-api", r -> r
-                        .path("/api/v1/products/**", "/api/v1/orders/**", "/api/v1/auth/**")
+                        .path(
+                                "/api/v1/auth/**",
+                                "/api/v1/products/**",
+                                "/api/v1/categories/**",
+                                "/api/v1/carts/**",
+                                "/api/v1/orders/**"
+                        )
                         .filters(f -> f
                                 .requestRateLimiter(c -> c
                                         .setRateLimiter(redisRateLimiter)
