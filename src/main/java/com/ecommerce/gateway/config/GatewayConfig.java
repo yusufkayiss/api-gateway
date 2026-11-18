@@ -1,5 +1,6 @@
 package com.ecommerce.gateway.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
@@ -20,11 +21,22 @@ public class GatewayConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder,
                                            RedisRateLimiter redisRateLimiter,
+                                           @Qualifier("authRateLimiter") RedisRateLimiter authRateLimiter,
                                            KeyResolver userKeyResolver) {
         return builder.routes()
+                .route("ecommerce-auth-route", r -> r
+                        .path("/api/v1/auth/**")
+                        .filters(f -> f
+                                .requestRateLimiter(c -> c
+                                        .setRateLimiter(authRateLimiter)
+                                        .setKeyResolver(userKeyResolver))
+                                .circuitBreaker(c -> c
+                                        .setName("coreApiCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/core-api"))
+                                .addRequestHeader("X-Gateway-Source", "api-gateway"))
+                        .uri(coreApiUri))
                 .route("ecommerce-core-api", r -> r
                         .path(
-                                "/api/v1/auth/**",
                                 "/api/v1/products/**",
                                 "/api/v1/categories/**",
                                 "/api/v1/cart/**",
