@@ -26,23 +26,33 @@ Central Entry Point and Reverse Proxy for the E-Commerce Microservices ecosystem
 flowchart TD
     Client[Client / Postman / Frontend] -->|HTTP Request| Gateway[Spring Cloud Gateway :8080]
 
-    subgraph GatewayEngine ["Gateway Engine"]
+    subgraph GatewayEngine ["Gateway Engine (Security, Rate Limiting & Resilience)"]
+        direction TB
         Gateway --> AuthFilter["1. JwtAuthenticationFilter (Order: -100)<br/>Strip Spoofed X-User-Id & Verify JWT"]
+        
         AuthFilter -->|Authorized / Public| KeyRes["2. KeyResolver (RateLimiterConfig)<br/>Resolve user:id or ip:addr"]
+        AuthFilter -.->|Invalid / Missing Token| Err401["401 Unauthorized (JSON)"]
+        
         KeyRes --> RedisLimiter["3. RedisRateLimiter (10 rps / 20 burst)<br/>Token Bucket Check"]
+        
         RedisLimiter <--> Redis[(Redis :6379)]
+        RedisLimiter -.->|Limit Exceeded| Err429["429 Too Many Requests"]
+        
         RedisLimiter -->|Allowed| CB["4. Resilience4j CircuitBreaker<br/>3s Timeout & Failure Threshold"]
+        CB -.->|Timeout / Down| Fallback["FallbackController → 503 Service Unavailable"]
     end
 
-    AuthFilter -.->|Invalid / Missing Token| Err401["401 Unauthorized (JSON)"]
-    RedisLimiter -.->|Limit Exceeded| Err429["429 Too Many Requests"]
-    CB -.->|Timeout / Service Down| Fallback["FallbackController → 503 Service Unavailable"]
-
     CB -->|Healthy| Routing{"Route Matcher (GatewayConfig)"}
-    Routing -->|/api/v1/auth/**, /products/**, /orders/**| CoreAPI["Core API Service :8081"]
+    
+    Routing -->|/api/v1/auth/**<br>/products/**<br>/orders/**| CoreAPI["Core API Service :8081"]
     Routing -->|/api/v1/notifications/**| NotifAPI["Notification Service :8082"]
 
     style GatewayEngine fill:#161b22,stroke:#30363d,stroke-width:1px,color:#fff
+    style Err401 fill:#4a1515,stroke:#ff7b72,color:#fff
+    style Err429 fill:#4a3215,stroke:#d29922,color:#fff
+    style Fallback fill:#4a1515,stroke:#ff7b72,color:#fff
+    style CoreAPI fill:#0d261a,stroke:#2ea043,color:#fff
+    style NotifAPI fill:#0d261a,stroke:#2ea043,color:#fff
 ```
 
 ### ✨ Key Architectural Features
@@ -103,23 +113,33 @@ E-Ticaret Mikroservis mimarisinin merkezi giriş kapısı ve ters proxy (reverse
 flowchart TD
     Client[İstemci / Postman / Frontend] -->|HTTP İsteği| Gateway[Spring Cloud Gateway :8080]
 
-    subgraph GatewayEngine ["Gateway Motoru"]
+    subgraph GatewayEngine ["Gateway Motoru (Güvenlik, Kota ve Dayanıklılık)"]
+        direction TB
         Gateway --> AuthFilter["1. JwtAuthenticationFilter (Order: -100)<br/>Sahte Header Temizle & JWT Doğrula"]
+        
         AuthFilter -->|Yetkili / Açık Uç| KeyRes["2. KeyResolver (RateLimiterConfig)<br/>user:id veya ip:addr Çözümle"]
+        AuthFilter -.->|Geçersiz / Eksik Token| Err401["401 Unauthorized (JSON)"]
+        
         KeyRes --> RedisLimiter["3. RedisRateLimiter (10 rps / 20 burst)<br/>Token Bucket Kota Kontrolü"]
+        
         RedisLimiter <--> Redis[(Redis :6379)]
+        RedisLimiter -.->|Kota Aşıldı| Err429["429 Too Many Requests"]
+        
         RedisLimiter -->|İzin Verildi| CB["4. Resilience4j CircuitBreaker<br/>3s Zaman Aşımı & Devre Kesici"]
+        CB -.->|Zaman Aşımı / Kapalı| Fallback["FallbackController → 503 Service Unavailable"]
     end
 
-    AuthFilter -.->|Geçersiz / Eksik Token| Err401["401 Unauthorized (JSON)"]
-    RedisLimiter -.->|Kota Aşıldı| Err429["429 Too Many Requests"]
-    CB -.->|Zaman Aşımı / Servis Kapalı| Fallback["FallbackController → 503 Service Unavailable"]
-
     CB -->|Sağlıklı| Routing{"Rota Eşleştirici (GatewayConfig)"}
-    Routing -->|/api/v1/auth/**, /products/**, /orders/**| CoreAPI["Core API Servisi :8081"]
+    
+    Routing -->|/api/v1/auth/**<br>/products/**<br>/orders/**| CoreAPI["Core API Servisi :8081"]
     Routing -->|/api/v1/notifications/**| NotifAPI["Bildirim Servisi :8082"]
 
     style GatewayEngine fill:#161b22,stroke:#30363d,stroke-width:1px,color:#fff
+    style Err401 fill:#4a1515,stroke:#ff7b72,color:#fff
+    style Err429 fill:#4a3215,stroke:#d29922,color:#fff
+    style Fallback fill:#4a1515,stroke:#ff7b72,color:#fff
+    style CoreAPI fill:#0d261a,stroke:#2ea043,color:#fff
+    style NotifAPI fill:#0d261a,stroke:#2ea043,color:#fff
 ```
 
 ### ✨ Öne Çıkan Mimari Özellikler
