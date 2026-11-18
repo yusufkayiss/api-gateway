@@ -69,6 +69,7 @@ flowchart TD
 | `/api/v1/auth/**` | `ALL` | Public | `core-api` (`:8081`) | `/fallback/core-api` |
 | `/api/v1/products/**` | `GET` | Public | `core-api` (`:8081`) | `/fallback/core-api` |
 | `/api/v1/products/**` | `POST`, `PUT`, `DELETE` | **JWT Required** | `core-api` (`:8081`) | `/fallback/core-api` |
+| `/api/v1/cart/**` | `ALL` | **JWT Required** | `core-api` (`:8081`) | `/fallback/core-api` |
 | `/api/v1/orders/**` | `ALL` | **JWT Required** | `core-api` (`:8081`) | `/fallback/core-api` |
 | `/api/v1/notifications/**` | `ALL` | **JWT Required** | `notification-service` (`:8082`) | `/fallback/notifications` |
 | `/actuator/**` | `GET` | Public | Gateway Local | — |

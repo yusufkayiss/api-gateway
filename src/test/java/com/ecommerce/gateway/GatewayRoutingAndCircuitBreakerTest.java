@@ -1,6 +1,7 @@
 package com.ecommerce.gateway;
 
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +52,7 @@ class GatewayRoutingAndCircuitBreakerTest {
     private String jwtSecret;
 
     private String generateTestToken(String userId) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        SecretKey key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
         return Jwts.builder()
                 .subject("testuser@ecommerce.com")
                 .claim("userId", userId)
