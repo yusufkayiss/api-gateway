@@ -23,24 +23,23 @@ Central Entry Point and Reverse Proxy for the E-Commerce Microservices ecosystem
 ### 📐 Architecture & Request Flow
 
 ```mermaid
-graph TD
+flowchart TD
     Client[Client / Postman / Frontend] -->|HTTP Request| Gateway[Spring Cloud Gateway :8080]
-    
+
     subgraph GatewayEngine ["Gateway Engine"]
-        Gateway -->|1. Strip Spoofed Headers & Verify JWT| AuthFilter["JwtAuthenticationFilter (Order: -100)"]
-        AuthFilter -->|2. Resolve user:id or ip:addr| KeyRes["KeyResolver (RateLimiterConfig)"]
-        KeyRes -->|3. Check Tokens| RedisLimiter["RedisRateLimiter (10 rps / 20 burst)"]
-        RedisLimiter <-->|Evaluate Limits| Redis[(Redis :6379)]
-        RedisLimiter -->|4. Resilience Wrapper| CB["Resilience4j CircuitBreaker (3s Timeout)"]
+        Gateway --> AuthFilter["1. JwtAuthenticationFilter (Order: -100)<br/>Strip Spoofed X-User-Id & Verify JWT"]
+        AuthFilter -->|Authorized / Public| KeyRes["2. KeyResolver (RateLimiterConfig)<br/>Resolve user:id or ip:addr"]
+        KeyRes --> RedisLimiter["3. RedisRateLimiter (10 rps / 20 burst)<br/>Token Bucket Check"]
+        RedisLimiter <--> Redis[(Redis :6379)]
+        RedisLimiter -->|Allowed| CB["4. Resilience4j CircuitBreaker<br/>3s Timeout & Failure Threshold"]
     end
-    
-    AuthFilter -->|Invalid / Missing Token 401| Client
-    RedisLimiter -->|Limit Exceeded 429| Client
-    CB -->|Timeout / Service Down 503| Fallback["FallbackController (JSON Error)"]
-    Fallback --> Client
-    
-    CB -->|Healthy & Authorized| Routing{"Route Matcher (GatewayConfig)"}
-    Routing -->|/api/v1/auth/** & /products/** & /orders/**| CoreAPI["Core API Service :8081"]
+
+    AuthFilter -.->|Invalid / Missing Token| Err401["401 Unauthorized (JSON)"]
+    RedisLimiter -.->|Limit Exceeded| Err429["429 Too Many Requests"]
+    CB -.->|Timeout / Service Down| Fallback["FallbackController → 503 Service Unavailable"]
+
+    CB -->|Healthy| Routing{"Route Matcher (GatewayConfig)"}
+    Routing -->|/api/v1/auth/**, /products/**, /orders/**| CoreAPI["Core API Service :8081"]
     Routing -->|/api/v1/notifications/**| NotifAPI["Notification Service :8082"]
 
     style GatewayEngine fill:#161b22,stroke:#30363d,stroke-width:1px,color:#fff
@@ -101,24 +100,23 @@ E-Ticaret Mikroservis mimarisinin merkezi giriş kapısı ve ters proxy (reverse
 ### 📐 Mimari ve İstek Akışı
 
 ```mermaid
-graph TD
+flowchart TD
     Client[İstemci / Postman / Frontend] -->|HTTP İsteği| Gateway[Spring Cloud Gateway :8080]
-    
+
     subgraph GatewayEngine ["Gateway Motoru"]
-        Gateway -->|1. Sahte Header Temizle & JWT Doğrula| AuthFilter["JwtAuthenticationFilter (Order: -100)"]
-        AuthFilter -->|2. user:id veya ip:addr Çözümle| KeyRes["KeyResolver (RateLimiterConfig)"]
-        KeyRes -->|3. Kota Kontrolü| RedisLimiter["RedisRateLimiter (10 rps / 20 burst)"]
-        RedisLimiter <-->|Limit Sorgusu| Redis[(Redis :6379)]
-        RedisLimiter -->|4. Devre Kesici Koruması| CB["Resilience4j CircuitBreaker (3s Timeout)"]
+        Gateway --> AuthFilter["1. JwtAuthenticationFilter (Order: -100)<br/>Sahte Header Temizle & JWT Doğrula"]
+        AuthFilter -->|Yetkili / Açık Uç| KeyRes["2. KeyResolver (RateLimiterConfig)<br/>user:id veya ip:addr Çözümle"]
+        KeyRes --> RedisLimiter["3. RedisRateLimiter (10 rps / 20 burst)<br/>Token Bucket Kota Kontrolü"]
+        RedisLimiter <--> Redis[(Redis :6379)]
+        RedisLimiter -->|İzin Verildi| CB["4. Resilience4j CircuitBreaker<br/>3s Zaman Aşımı & Devre Kesici"]
     end
-    
-    AuthFilter -->|Geçersiz / Eksik Token 401| Client
-    RedisLimiter -->|Limit Aşıldı 429| Client
-    CB -->|Zaman Aşımı / Servis Kapalı 503| Fallback["FallbackController (JSON Hata)"]
-    Fallback --> Client
-    
-    CB -->|Sağlıklı & Doğrulanmış İstek| Routing{"Rota Eşleştirici (GatewayConfig)"}
-    Routing -->|/api/v1/auth/** & /products/** & /orders/**| CoreAPI["Core API Servisi :8081"]
+
+    AuthFilter -.->|Geçersiz / Eksik Token| Err401["401 Unauthorized (JSON)"]
+    RedisLimiter -.->|Kota Aşıldı| Err429["429 Too Many Requests"]
+    CB -.->|Zaman Aşımı / Servis Kapalı| Fallback["FallbackController → 503 Service Unavailable"]
+
+    CB -->|Sağlıklı| Routing{"Rota Eşleştirici (GatewayConfig)"}
+    Routing -->|/api/v1/auth/**, /products/**, /orders/**| CoreAPI["Core API Servisi :8081"]
     Routing -->|/api/v1/notifications/**| NotifAPI["Bildirim Servisi :8082"]
 
     style GatewayEngine fill:#161b22,stroke:#30363d,stroke-width:1px,color:#fff
